@@ -1,6 +1,19 @@
+# Windows Audio Control 🎛️
+
 ![Windows](https://img.shields.io/badge/Platform-Windows-0078d7.svg?style=for-the-badge&logo=windows)
 ![Python](https://img.shields.io/badge/Python-3.13-3776ab.svg?style=for-the-badge&logo=python)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
+
+Control your Windows master, app-specific, and foreground process volumes with your own microcontroller and rotary encoders.
+
+## ✨ Features
+- **Channel Mixing**: Control Master, specific Apps, and the currently focused window.
+- **Mute Function**: Push the encoder to toggle mute for the assigned channel.
+- **Intelligent Foreground Control**: Automatically targets the active window's volume, but stays locked to the last audio-producing app until a new, unmapped sound source is detected.
+- **EarTrumpet Integration**: Triggers the EarTrumpet flyout for visual feedback.
+- **Auto-Reconnect**: Automatically restores connection if the Arduino is unplugged.
+
+## 🚀 Installation & Setup
 
 ### Installation & Setup
 
@@ -16,7 +29,7 @@
 | **foreground** | Adjusts the volume of the application currently in focus. |
 | **app.exe** | Adjusts the volume of a specific app (e.g., `spotify.exe`). |
 
-4. **Autostart (Optional):** Create a shortcut of the `.exe` and place it in the Windows Startup folder (`shell:startup`) to launch it automatically on boot.
+   - `flyout_hotkey`: Must match your EarTrumpet "Settings > Shortcuts" hotkey.
 
-Features
-- **Visual Feedback**: Compatible with EarTrumpet (triggers the flyout via shortcut for a modern UI experience).
+4. **Autostart (Optional):** Create a shortcut of the `.exe` and place it in the Windows Startup folder (`shell:startup`) to launch it automatically on boot.
+5. **Run:** Start `audio-control.exe` or run `python audio-control.py`.
