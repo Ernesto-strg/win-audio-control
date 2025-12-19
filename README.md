@@ -24,10 +24,10 @@ Control your Windows master, app-specific, and foreground process volumes with y
   <br>
   <em>Aktueller Prototyp-Aufbau auf dem Breadboard</em>
 </p>
-3. **Firmware:** Upload the `sketch_dec17b.ino` from the `/sketch_dec17b` folder. Ensure the pin assignments in the code match your wiring and adjust the number of encoders if necessary.
-4. **Configuration:** Run the `.exe` or `audio-control.py`. Make sure to edit the `config.json` in the same directory.
-   - Set the `com_port` (if left empty, the app will auto-connect to the first available COM device).
-   - Configure your channels using these three options:
+2. **Firmware:** Upload the `sketch_dec17b.ino` from the `/sketch_dec17b` folder. Ensure the pin assignments match your wiring.
+3. **Configuration:** Run the `.exe` or `audio-control.py` and edit the generated `config.json`:
+   - Set the `com_port` (leave empty for auto-detection).
+   - Configure your channels using these options:
 
 | Channel Option | Description |
 | :--- | :--- |
