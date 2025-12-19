@@ -47,7 +47,7 @@ Control your Windows master, app-specific, and foreground process volumes with y
 For the best visual experience, I recommend using **[EarTrumpet](https://eartrumpet.app/)**. My hardware controller works perfectly with EarTrumpet to precisely control the volume of individual apps.
 
 <p align="center">
-  <img src="https://github.com/File-New-Project/EarTrumpet/blob/master/Graphics/hero.gif" alt="EarTrumpet Demo" width="400">
+  <img src="https://github.com/File-New-Project/EarTrumpet/blob/master/Graphics/hero.gif" alt="EarTrumpet Demo">
   <br>
   <em>(Image source: EarTrumpet Project - To illustrate app control)</em>
 </p>
