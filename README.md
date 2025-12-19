@@ -24,6 +24,7 @@ Control your Windows master, app-specific, and foreground process volumes with y
   <br>
   <em>Aktueller Prototyp-Aufbau auf dem Breadboard</em>
 </p>
+
 2. **Firmware:** Upload the `sketch_dec17b.ino` from the `/sketch_dec17b` folder. Ensure the pin assignments match your wiring.
 3. **Configuration:** Run the `.exe` or `audio-control.py` and edit the generated `config.json`:
    - Set the `com_port` (leave empty for auto-detection).
@@ -35,7 +36,6 @@ Control your Windows master, app-specific, and foreground process volumes with y
 | **foreground** | Adjusts the volume of the application currently in focus. |
 | **app.exe** | Adjusts the volume of a specific app (e.g., `spotify.exe`). |
 
-   - `flyout_hotkey`: Must match your EarTrumpet "Settings > Shortcuts" hotkey.
-
 4. **Autostart (Optional):** Create a shortcut of the `.exe` and place it in the Windows Startup folder (`shell:startup`) to launch it automatically on boot.
+   - `flyout_hotkey`: Must match your EarTrumpet "Settings > Shortcuts" hotkey.
 5. **Run:** Start `audio-control.exe` or run `python audio-control.py`.
