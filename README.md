@@ -1,12 +1,12 @@
+<p align="center">
+  <img src="assets/win-audio-control.png" alt="WinAudioControl Logo" width="300">
+</p>
+
 # Windows Audio Control
 
 ![Windows](https://img.shields.io/badge/Platform-Windows-0078d7.svg?style=for-the-badge&logo=windows)
 ![Python](https://img.shields.io/badge/Python-3.13-3776ab.svg?style=for-the-badge&logo=python)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
-
-<p align="center">
-  <img src="assets/win-audio-control.png" alt="WinAudioControl Logo" width="300">
-</p>
 
 Control your Windows master, app-specific, and foreground process volumes with your own microcontroller and rotary encoders.
 
@@ -19,10 +19,11 @@ Control your Windows master, app-specific, and foreground process volumes with y
 
 ## 🚀 Installation & Setup
 1. **Hardware:** Connect your rotary encoders to the microcontroller.
+
 <p align="center">
   <img src="assets/wiring.jpg" alt="Hardware Wiring" width="500">
   <br>
-  <em>Aktueller Prototyp-Aufbau auf dem Breadboard</em>
+  <em>Current prototype setup on a breadboard</em>
 </p>
 
 2. **Firmware:** Upload the `sketch_dec17b.ino` from the `/sketch_dec17b` folder. Ensure the pin assignments match your wiring.
