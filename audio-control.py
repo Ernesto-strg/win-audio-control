@@ -1,12 +1,19 @@
-import pywintypes
 import win32gui
 import win32process
-import win32con
 import psutil
 import time
 import serial
-import pyautogui
 import json
+import tkinter as tk
+from tkinter import ttk
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    pass
+
+import threading
+from queue import Queue
 import sys
 import os
 import serial.tools.list_ports
@@ -35,7 +42,7 @@ def load_config():
         detected_port = find_port()
         return {
             "connection": {"port": detected_port, "baud_rate": 9600},
-            "settings": {"step": 0.02, "flyout_time": 1.5, "flyout_hotkey": ["winleft", "alt", "o"], "sleep_time": 0.02},
+            "settings": {"step": 0.02, "flyout_time": 1.5, "sleep_time": 0.02},
             "channels": [ {"id": 1, "type": "master"}, {"id": 2, "type": "app", "target": "firefox.exe"}, {"id": 3, "type": "foreground"}, {"id": 4, "type": "app", "target": "discord.exe"} ]
         }
 
@@ -45,7 +52,6 @@ COM_PORT = config['connection']['port']
 BAUD_RATE = config['connection']['baud_rate']
 VOL_STEP = config['settings']['step']
 FLYOUT_TIME = config['settings']['flyout_time']
-FLYOUT_HOTKEY = config['settings']['flyout_hotkey']
 SLEEP_TIME = config['settings']['sleep_time']
 
 CHANNELS: dict = {str(ch.get('id')): ch for ch in config.get('channels', [])}
@@ -55,9 +61,94 @@ print(f"Konfiguration geladen. Aktive Kanäle: {list(CHANNELS.keys())}")
 
 
 last_valid_foreground_exe = None
-prev_hwnd = 0
-flyout_busy = False
-last_change = time.time()
+
+overlay_queue = Queue()
+
+
+def overlay_thread_func():
+    root = tk.Tk()
+    root.overrideredirect(True)
+    root.attributes("-topmost", True)
+    root.configure(bg="#1c1c1c")
+
+    win_width = 380
+
+    app_text = tk.StringVar(value="")
+    app_label = tk.Label(root, textvariable=app_text, bg="#1c1c1c", font=("Segoe UI", 16, "bold"))
+    app_label.pack(fill="x", pady=(10, 2))
+
+    vol_text = tk.StringVar(value="")
+    vol_label = tk.Label(root, textvariable=vol_text, fg="#ffffff", bg="#1c1c1c", font=("Segoe UI", 14, "normal"))
+    vol_label.pack(fill="x", pady=(2, 10))
+
+    bar_style = ttk.Style()
+    bar_style.theme_use('default')
+
+    bar_var = tk.DoubleVar(value=0)
+    vol_bar = ttk.Progressbar(root, variable=bar_var, maximum=100, length=200, mode='determinate')
+    vol_bar.pack(pady=(5, 12), padx=20, fill="x")
+
+    root.withdraw()
+    hide_timer = None
+
+    def hide_overlay():
+        root.withdraw()
+
+    def check_queue():
+        nonlocal hide_timer
+        while not overlay_queue.empty():
+            app_name, vol_status, color = overlay_queue.get()
+
+            app_text.set(app_name)
+            app_label.config(fg=color)
+            vol_text.set(f"Lautstärke: {vol_status}")
+
+            numeric_volume = 0 if "STUMM" in vol_status else int(vol_status.replace("%", ""))
+            bar_var.set(numeric_volume)
+
+            bar_style.configure("TProgressbar", thickness=8, troughcolor='#2d2d2d', background=color,
+                                bordercolor='#1c1c1c')
+            vol_bar.config(style="TProgressbar")
+
+            root.update_idletasks()
+
+            win_height = root.winfo_reqheight()
+
+            screen_width = root.winfo_screenwidth()
+            x_pos = (screen_width - win_width) // 2
+            y_pos = 50
+
+            root.geometry(f"{win_width}x{win_height}+{x_pos}+{y_pos}")
+
+            if not root.winfo_viewable():
+                root.deiconify()
+
+            if hide_timer:
+                root.after_cancel(hide_timer)
+
+            hide_timer = root.after(int(FLYOUT_TIME * 1000), hide_overlay)
+
+        root.after(50, check_queue)
+
+    GWL_EXSTYLE = -20
+    WS_EX_NOACTIVATE = 0x08000000
+    WS_EX_TOPMOST = 0x00000008
+
+    hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
+    style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+    ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style | WS_EX_NOACTIVATE | WS_EX_TOPMOST)
+
+    root.after(50, check_queue)
+    root.mainloop()
+
+
+threading.Thread(target=overlay_thread_func, daemon=True).start()
+
+
+def trigger_overlay(app_name, percent, color, muted=False):
+    status = "STUMM" if muted else f"{percent}%"
+    overlay_queue.put((app_name, status, color))
+
 
 
 def get_device():
@@ -66,17 +157,17 @@ def get_device():
     return interface.QueryInterface(IAudioEndpointVolume)
 
 
-def vol_change(direction):
+def vol_change(direction, color="green"):
     volume = get_device()
     current = volume.GetMasterVolumeLevelScalar()
     new_vol = min(current + VOL_STEP, 1.0) if direction == "UP" else max(current - VOL_STEP, 0.0)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
 
-    global flyout_busy
-    flyout_busy = True
+    is_muted = volume.GetMute()
+    trigger_overlay("Master-Audio", round(new_vol * 100), color, is_muted)
 
 
-def app_vol_change(app_name, direction):
+def app_vol_change(app_name, direction, color="cyan"):
     sessions = AudioUtilities.GetAllSessions()
     for session in sessions:
         if session.Process and session.Process.name().lower() == app_name.lower():
@@ -85,25 +176,24 @@ def app_vol_change(app_name, direction):
             new_vol = min(current + VOL_STEP, 1.0) if direction == "UP" else max(current - VOL_STEP, 0.0)
             volume.SetMasterVolume(new_vol, None)
 
-            global flyout_busy
-            flyout_busy = True
+            is_muted = volume.GetMute()
+            trigger_overlay(session.Process.name(), round(new_vol * 100), color, is_muted)
 
 
-def toggle_mute(app_name=None):
+def toggle_mute(app_name=None, color="cyan"):
     if app_name:
         sessions = AudioUtilities.GetAllSessions()
         for session in sessions:
             if session.Process and session.Process.name().lower() == app_name.lower():
                 vol = session._ctl.QueryInterface(ISimpleAudioVolume)
-                vol.SetMute(not vol.GetMute(), None)
-
-                global flyout_busy
-                flyout_busy = True
+                current_mute = vol.GetMute()
+                vol.SetMute(not current_mute, None)
+                trigger_overlay(session.Process.name(), round(vol.GetMasterVolume() * 100), color, not current_mute)
     else:
         vol = get_device()
-        vol.SetMute(not vol.GetMute(), None)
-
-        flyout_busy = True
+        current_mute = vol.GetMute()
+        vol.SetMute(not current_mute, None)
+        trigger_overlay("Master-Audio", round(vol.GetMasterVolumeLevelScalar() * 100), color, not current_mute)
 
 
 def is_app_volume_controllable(exe_name):
@@ -134,13 +224,6 @@ def get_foreground_exe():
         return last_valid_foreground_exe
 
 
-def flyout():
-    global flyout_busy, prev_hwnd
-    if not flyout_busy:
-        flyout_busy = True
-        prev_hwnd = win32gui.GetForegroundWindow()
-        pyautogui.hotkey(*FLYOUT_HOTKEY)
-
 
 try:
     ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=0.1)
@@ -151,11 +234,20 @@ except serial.SerialException:
 
 while True:
     line = ""
+
+    if ser is None or not ser.is_open:
+        try:
+            ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=0.1)
+        except serial.SerialException:
+            time.sleep(2)
+            continue
+
     try:
         line = ser.readline().decode('utf-8').strip()
-    except serial.SerialException:
+    except (serial.SerialException, AttributeError):
         if ser and ser.is_open:
             ser.close()
+        ser = None
 
         while True:
             try:
@@ -165,14 +257,7 @@ while True:
                 time.sleep(2)
 
     if not line:
-        if flyout_busy and time.time() - last_change > FLYOUT_TIME:
-            if win32gui.IsWindow(prev_hwnd):
-                win32gui.ShowWindow(prev_hwnd, win32con.SW_SHOW)
-                try:
-                    win32gui.SetForegroundWindow(prev_hwnd)
-                except pywintypes.error:
-                    pass
-            flyout_busy = False
+        time.sleep(SLEEP_TIME)
         continue
 
     parts = line.split('_')
@@ -185,22 +270,23 @@ while True:
 
             if ch['type'] == 'foreground':
                 target_app = get_foreground_exe()
+                print(target_app)
             else:
                 target_app = ch.get('target')
 
-            last_change = time.time()
-            flyout()
+            # Wir holen uns die Farbe aus dem aktuellen Kanal (Standard: weiß)
+            ch_color = ch.get('color', 'white')
 
             if cmd_type == "VOL":
                 direction = parts[1]
                 if ch['type'] == 'master':
-                    vol_change(direction)
+                    vol_change(direction, color=ch_color)
                 elif target_app:
-                    app_vol_change(target_app, direction)
+                    app_vol_change(target_app, direction, color=ch_color)
             elif cmd_type == "BUTTON":
                 if ch['type'] == 'master':
-                    toggle_mute()
+                    toggle_mute(color=ch_color)
                 elif target_app:
-                    toggle_mute(target_app)
+                    toggle_mute(target_app, color=ch_color)
 
     time.sleep(SLEEP_TIME)

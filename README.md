@@ -14,10 +14,13 @@ Control your Windows master, app-specific, and foreground process volumes with y
 - **Channel Mixing**: Control Master, specific Apps, and the currently focused window.
 - **Mute Function**: Push the encoder to toggle mute for the assigned channel.
 - **Intelligent Foreground Control**: Automatically targets the active window's volume, but stays locked to the last audio-producing app until a new, unmapped sound source is detected.
-- **EarTrumpet Integration**: Triggers the EarTrumpet flyout for visual feedback.
+- **Volume Indicator**: Shows the current audio level (volume meter) for the assigned channel.
 - **Auto-Reconnect**: Automatically restores connection if the Arduino is unplugged.
 
 ## 🚀 Installation & Setup
+
+> ⚠️ **Important Python Note:** If you run the project from source, you **must use Python 3.13**. Higher versions (like Python 3.14+) are currently not supported.
+
 1. **Hardware:** Connect your rotary encoders to the microcontroller.
 
 <p align="center">
@@ -27,7 +30,8 @@ Control your Windows master, app-specific, and foreground process volumes with y
 </p>
 
 2. **Firmware:** Upload your version of the `sketch_dec17b.ino` from the `/sketch_dec17b` folder to the microcontroller. Ensure the pin assignments match your wiring.
-3. **Configuration:** Before running the `.exe` or `audio-control.py` make sure to edit the `config.json`:
+3. **Environment Setup:** (If running from Python source) If you are not using the `.exe`, set up your virtual environment and install the required dependencies.
+4. **Configuration:** Before running the `.exe` or `audio-control.py` make sure to edit the `config.json`:
    - Set the `com_port` (If left empty, the first device that uses a COM port will be used.).
    - Configure your channels using these options:
 
@@ -37,17 +41,12 @@ Control your Windows master, app-specific, and foreground process volumes with y
 | **foreground** | Adjusts the volume of the application currently in focus. |
 | **app.exe** | Adjusts the volume of a specific app (e.g., `spotify.exe`). |
 
-   - `flyout_hotkey`: Must match your EarTrumpet "Settings > Shortcuts" hotkey.
+5. **Autostart (Optional):** Create a shortcut of the `.exe` and place it in the Windows Startup folder (`shell:startup`) to launch it automatically on boot.
+6. **Run:** Start `audio-control.exe` or run `python audio-control.py`.
 
-4. **Autostart (Optional):** Create a shortcut of the `.exe` and place it in the Windows Startup folder (`shell:startup`) to launch it automatically on boot.
-5. **Run:** Start `audio-control.exe` or run `python audio-control.py`.
+## Indicators example
 
-## Recommended software: EarTrumpet
+Visual audio level meters for active channels:
 
-For the best visual experience, I recommend using **[EarTrumpet](https://eartrumpet.app/)**. My hardware controller works perfectly with EarTrumpet to precisely control the volume of individual apps.
-
-<p align="center">
-  <img src="https://github.com/File-New-Project/EarTrumpet/blob/master/Graphics/hero.gif" alt="EarTrumpet Demo">
-  <br>
-  <em>(Image source: EarTrumpet Project - To illustrate app control)</em>
-</p>
+![Master Volume indicator](assets/master-volume-indicator.png)
+![Firefox Volume indicator](assets/firefox-volume-indicator.png)
